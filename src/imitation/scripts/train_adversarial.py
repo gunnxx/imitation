@@ -3,7 +3,7 @@
 import functools
 import logging
 import pathlib
-from typing import Any, Mapping, Optional, Type
+from typing import Any, Mapping, Optional, Type, Union
 
 import sacred.commands
 import torch as th
@@ -17,6 +17,9 @@ from imitation.policies import serialize
 from imitation.scripts.common import common as common_config
 from imitation.scripts.common import demonstrations, reward, rl, train
 from imitation.scripts.config.train_adversarial import train_adversarial_ex
+import imitation.scripts.train_imitation as train_imitation
+
+from stable_baselines3.common import utils
 
 logger = logging.getLogger("imitation.scripts.train_adversarial")
 
@@ -62,7 +65,6 @@ def _add_hook(ingredient: sacred.Ingredient) -> None:
 for ingredient in [train_adversarial_ex, *train_adversarial_ex.ingredients]:
     _add_hook(ingredient)
 
-
 @train_adversarial_ex.capture
 def train_adversarial(
     _run,
@@ -72,6 +74,9 @@ def train_adversarial(
     total_timesteps: int,
     checkpoint_interval: int,
     agent_path: Optional[str],
+    warm_start_with_bc: bool,
+    bc_config: Optional[Mapping[str, Any]],
+    device: Union[str, th.device]
 ) -> Mapping[str, Mapping[str, float]]:
     """Train an adversarial-network-based imitation learning algorithm.
 
@@ -97,6 +102,11 @@ def train_adversarial(
             provided, then the agent will be initialized using this stored policy
             (warm start). If not provided, then the agent will be initialized using
             a random policy.
+        warm_start_with_bc: boolean indicates whether one should pre-train using
+            behavior cloning before using one of the adversarial algorithms
+        bc_config: Only applies if warm_start_with_bc=True. These are the settings
+            that govern the pre-training w/ behavior cloning. See the documentation
+            for behavior cloning for all the (optional) individual parameters.
 
     Returns:
         A dictionary with two keys. "imit_stats" gives the return value of
@@ -113,6 +123,10 @@ def train_adversarial(
     custom_logger, log_dir = common_config.setup_logging()
     expert_trajs = demonstrations.get_expert_trajectories()
 
+    previous_policy_path = None
+    if warm_start_with_bc:
+        previous_policy_path = train_imitation.warm_start_with_bc(bc_config=bc_config)
+
     with common_config.make_venv() as venv:
         reward_net = reward.make_reward_net(venv)
         relabel_reward_fn = functools.partial(
@@ -122,6 +136,9 @@ def train_adversarial(
 
         if agent_path is None:
             gen_algo = rl.make_rl_algo(venv, relabel_reward_fn=relabel_reward_fn)
+            if previous_policy_path != None:
+                previous_policy = th.load(previous_policy_path, map_location=utils.get_device(device))
+                gen_algo.policy = previous_policy
         else:
             gen_algo = rl.load_rl_algo_from_path(
                 agent_path=agent_path,
