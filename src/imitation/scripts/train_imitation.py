@@ -168,8 +168,7 @@ def dagger() -> Mapping[str, Mapping[str, float]]:
     return train_imitation(use_dagger=True)
 
 
-def warm_start_with_bc(
-        bc_config: Mapping[str, Mapping[str, Any]]) -> pathlib.Path:
+def warm_start_with_bc(bc_config: Mapping[str, Mapping[str, Any]]) -> str:
     """Used if one wants to pre-train a model with behavior cloning.
 
     Args:
