@@ -539,6 +539,7 @@ def test_train_adversarial_warmstart(tmpdir, command):
     assert run_warmstart.status == "COMPLETED"
     _check_train_ex_result(run_warmstart.result)
 
+
 @pytest.mark.parametrize("command", ("airl", "gail"))
 def test_train_adversarial_warmstart_with_bc(tmpdir, command):
     """Test of warmstarts w/ behavior cloning before adversarial training."""
@@ -557,8 +558,8 @@ def test_train_adversarial_warmstart_with_bc(tmpdir, command):
         "warm_start_with_bc": True,
         "bc_config": {
             "config_updates": bc_config_updates,
-            "named_configs": bc_named_configs
-        }
+            "named_configs": bc_named_configs,
+        },
     }
     run = train_adversarial.train_adversarial_ex.run(
         command_name=command,

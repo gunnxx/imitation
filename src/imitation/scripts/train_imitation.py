@@ -167,10 +167,10 @@ def dagger() -> Mapping[str, Mapping[str, float]]:
     """
     return train_imitation(use_dagger=True)
 
+
 def warm_start_with_bc(
-    bc_config: Mapping[str, Mapping[str, Any]]
-    ) -> pathlib.Path:
-    """Used if one wants to pre-train a model with behavior cloning
+        bc_config: Mapping[str, Mapping[str, Any]]) -> pathlib.Path:
+    """Used if one wants to pre-train a model with behavior cloning.
 
     Args:
         bc_config: map of the settings to run a behavior cloning experiment. There
@@ -181,8 +181,7 @@ def warm_start_with_bc(
     Returns:
         The path to where the pre-trained model is saved.
     """
-
-    bc_config = bc_config if bc_config != None else {}
+    bc_config = bc_config if bc_config is not None else {}
 
     config_updates = {}
     if "config_updates" in bc_config:
@@ -195,11 +194,12 @@ def warm_start_with_bc(
     train_imitation_ex.run(
         command_name="bc",
         named_configs=named_configs,
-        config_updates=config_updates
+        config_updates=config_updates,
     )
 
     _, log_dir = common.setup_logging()
     return osp.join(log_dir, "final.th")
+
 
 def main_console():
     observer_path = pathlib.Path.cwd() / "output" / "sacred" / "train_dagger"

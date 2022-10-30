@@ -8,7 +8,9 @@ from typing import Any, Mapping, Optional, Type, Union
 import sacred.commands
 import torch as th
 from sacred.observers import FileStorageObserver
+from stable_baselines3.common import utils
 
+import imitation.scripts.train_imitation as train_imitation
 from imitation.algorithms.adversarial import airl as airl_algo
 from imitation.algorithms.adversarial import common
 from imitation.algorithms.adversarial import gail as gail_algo
@@ -17,9 +19,6 @@ from imitation.policies import serialize
 from imitation.scripts.common import common as common_config
 from imitation.scripts.common import demonstrations, reward, rl, train
 from imitation.scripts.config.train_adversarial import train_adversarial_ex
-import imitation.scripts.train_imitation as train_imitation
-
-from stable_baselines3.common import utils
 
 logger = logging.getLogger("imitation.scripts.train_adversarial")
 
@@ -65,6 +64,7 @@ def _add_hook(ingredient: sacred.Ingredient) -> None:
 for ingredient in [train_adversarial_ex, *train_adversarial_ex.ingredients]:
     _add_hook(ingredient)
 
+
 @train_adversarial_ex.capture
 def train_adversarial(
     _run,
@@ -76,7 +76,7 @@ def train_adversarial(
     agent_path: Optional[str],
     warm_start_with_bc: bool,
     bc_config: Optional[Mapping[str, Any]],
-    device: Union[str, th.device]
+    device: Union[str, th.device],
 ) -> Mapping[str, Mapping[str, float]]:
     """Train an adversarial-network-based imitation learning algorithm.
 
@@ -107,6 +107,8 @@ def train_adversarial(
         bc_config: Only applies if warm_start_with_bc=True. These are the settings
             that govern the pre-training w/ behavior cloning. See the documentation
             for behavior cloning for all the (optional) individual parameters.
+        device: Only needed if warm_start_with_bc is true. This is the device that
+            the training is running on. Defaults to "auto".
 
     Returns:
         A dictionary with two keys. "imit_stats" gives the return value of
@@ -136,8 +138,11 @@ def train_adversarial(
 
         if agent_path is None:
             gen_algo = rl.make_rl_algo(venv, relabel_reward_fn=relabel_reward_fn)
-            if previous_policy_path != None:
-                previous_policy = th.load(previous_policy_path, map_location=utils.get_device(device))
+            if previous_policy_path is not None:
+                previous_policy = th.load(
+                    previous_policy_path,
+                    map_location=utils.get_device(device),
+                )
                 gen_algo.policy = previous_policy
         else:
             gen_algo = rl.load_rl_algo_from_path(
