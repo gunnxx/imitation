@@ -4,7 +4,7 @@ import logging
 import os.path as osp
 import pathlib
 import warnings
-from typing import Any, Mapping, Optional, Sequence, Type, cast
+from typing import Any, Dict, Mapping, Optional, Sequence, Type, cast
 
 from sacred.observers import FileStorageObserver
 from stable_baselines3.common import policies, utils, vec_env
@@ -168,7 +168,7 @@ def dagger() -> Mapping[str, Mapping[str, float]]:
     return train_imitation(use_dagger=True)
 
 
-def warm_start_with_bc(bc_config: Mapping[str, Mapping[str, Any]]) -> str:
+def warm_start_with_bc(bc_config: Optional[Mapping[str, Any]]) -> str:
     """Used if one wants to pre-train a model with behavior cloning.
 
     Args:
@@ -182,11 +182,11 @@ def warm_start_with_bc(bc_config: Mapping[str, Mapping[str, Any]]) -> str:
     """
     bc_config = bc_config if bc_config is not None else {}
 
-    config_updates = {}
+    config_updates: Optional[Dict[Any, Any]] = {}
     if "config_updates" in bc_config:
         config_updates = bc_config["config_updates"]
 
-    named_configs = []
+    named_configs: Sequence[str] = []
     if "named_configs" in bc_config:
         named_configs = bc_config["named_configs"]
 
